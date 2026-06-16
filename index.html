@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang='es'>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <title>Tarjeta de Perfil GitHub</title>
+        <style>
+            * { 
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            body { 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                background: #0d1117;
+                color: #e6edf3;
+                min-height: 100vh;
+                display: flex; 
+                flex-direction: column;
+                align-items:
+                center;
+                padding: 40px 20px;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+                margin-bottom: 24px;
+                color: #8b949e;
+                font-weight: 400;
+            }
+
+            .busqueda {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 32px;
+                width: 100%;
+                max-width: 480px;
+            }
+
+            input {
+                flex: 1;
+                padding: 10px 14px;
+                border-radius: 6px;
+                border: 1px solid #30363d;
+                background: #161b22;
+                color: #e6edf3;
+                font-size: 1rem;
+                outline: none;
+            }
+
+            input:focus {
+                border-color: #58a6ff;
+            }
+
+            button {
+                padding: 10px 18px;
+                border-radius: 6px;
+                border: none;
+                background: #238636;
+                color: white;
+                font-size: 1rem;
+                cursor: pointer;
+            }
+
+            button:hover {
+                background: #2ea043;
+            }
+
+            button:disabled {
+                background: #1a3a21;
+                color: #6e7681; 
+                cursor: not-allowed;
+            }
+
+            .cargando {
+                color: #8b949e;
+                font-size: .95rem;
+                display: none;
+            }
+
+            .cargando.visible {
+                display: block;
+            }
+
+            .card {
+                background: #161b22;
+                border: 1px solid #30363d;
+                border-radius: 12px;
+                padding: 28px;
+                max-width: 480px;
+                width: 100%;
+                display: none;
+            }
+
+            .card.visible {
+                display: block;
+            }
+
+            .card-header {
+                display: flex;
+                gap: 16px;
+                align-items: center;
+                margin-bottom: 16px;
+            }
+
+            .avatar {
+                width: 72px;
+                height: 72px;
+                border-radius: 50%;
+                border: 2px solid #30363d;
+                flex-shrink: 0;
+            }
+
+            .nombre {
+                font-size: 1.2rem;
+                font-weight: bold;
+                margin-bottom: 2px;
+            }
+
+            .usuario {
+                color: #8b949e;
+                font-size: .95rem;
+            }
+
+            .bio {
+                color: #8b949e;
+                font-size: .9rem;
+                margin-bottom: 16px;
+                line-height: 1.5;
+            }
+
+            .stats {
+                display: flex;
+                gap: 24px;
+                font-size: .9rem;
+                border-top: 1px solid #30363d;
+                padding-top: 14px;
+                margin-bottom: 14px;
+            }
+
+            .stat-valor {
+                font-weight: bold;
+                font-size: 1rem;
+            }
+
+            .stat-label {
+                color: #8b949e;
+            }
+
+            .enlace {
+                display: inline-block;
+                color: #58a6ff;
+                font-size: .9rem;
+                text-decoration: none;
+            }
+
+            .enlace:hover {
+                text-decoration: underline;
+            }
+
+            .error {
+                background: #1a0000;
+                border: 1px solid #f85149;
+                border-radius: 8px;
+                padding: 14px 18px;
+                color: #f85149;
+                max-width: 480px;
+                width: 100%;
+                display: none;
+            }
+
+            .error.visible {
+                display:block;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Buscador de perfiles GitHub</h1>
+        
+        <div class='busqueda'>
+            <input type='text' id='inputUsuario' placeholder='Escribe un usuario de GitHub...'>
+            <button id='btnBuscar'>Buscar</button>
+        </div>
+        
+        <p class='cargando' id='cargando'>Buscando...</p>
+        
+        <div class='error' id='mensajeError'></div>
+        
+        <div class='card' id='tarjeta'>
+            <div class='card-header'>
+                <!-- src se asigna con setAttribute(), no con innerHTML -->
+                    <img class='avatar' id='avatar' src='' alt='Avatar'> <div>
+                        <div class='nombre' id='nombre'></div>
+                        <div class='usuario' id='usuario'></div>
+                    </div>
+                </div>
+                
+                <div class='bio' id='bio'></div>
+                
+                <div class='stats'> 
+                    <div>
+                    <div class='stat-valor' id='repos'></div>
+                    <div class='stat-label'>Repositorios</div>
+                </div>
+                
+                <div>
+                    <div class='stat-valor' id='seguidores'></div>
+                    <div class='stat-label'>Seguidores</div>
+                </div>
+                
+                <div>
+                    <div class='stat-valor' id='siguiendo'></div>
+                    <div class='stat-label'>Siguiendo</div>
+                </div>
+            </div>
+            
+            <!-- href se asigna con setAttribute() -->
+            <a class='enlace' id='enlace' href='' target='_blank'> Ver perfil completo en GitHub → </a>
+        </div>
+
+        <script>
+            //  Configuración
+            // Reemplaza TU_TOKEN_AQUI con tu PAT.
+            // Antes de subir al repo, vuelve a poner TU_TOKEN_AQUI aquí.
+            const TOKEN = "TU_TOKEN_AQUI";
+
+            //  Referencias al DOM
+            const btn = document.getElementById('btnBuscar');
+            const input = document.getElementById('inputUsuario');
+            const tarjeta = document.getElementById('tarjeta');
+            const errorDiv = document.getElementById('mensajeError');
+            const cargandoDiv = document.getElementById('cargando');
+            
+            //  Función principal
+            async function buscarUsuario() { 
+                const username = input.value.trim();
+                if (!username) return; ocultarTarjeta();
+                ocultarError(); mostrarCargando(true);
+                btn.disabled = true;
+                
+                // fetch con headers de autenticación.
+                // await pausa la función sin bloquear el navegador.
+                const respuesta = await fetch( `https://api.github.com/users/${username}`, {
+                    headers: {
+                        // Bearer TOKEN: patrón estándar de autenticación.
+                        'Authorization': `Bearer ${TOKEN}`,
+                        'Accept': 'application/vnd.github+json'
+                    }
+                }
+            );
+            
+            mostrarCargando(false);
+            btn.disabled = false;
+            
+            // IMPORTANTE: fetch NO lanza error en respuestas 4xx/5xx.
+            // Hay que revisar respuesta.ok de forma explícita.
+            if (!respuesta.ok) {
+                if (respuesta.status === 404) {
+                    mostrarError('Usuario no encontrado. Verifica el nombre.');
+                } else if (respuesta.status === 401) {
+                    mostrarError('Token inválido. Revisa que lo copiaste completo.');
+                } else if (respuesta.status === 403) {
+                    mostrarError('Token expirado o sin permisos. Genera uno nuevo.');
+                } else {
+                    mostrarError(`Error ${respuesta.status}. Intenta de nuevo.`);
+                } 
+                return;
+            }
+            
+            // .json() también es una Promise, por eso necesita await.
+            const data = await respuesta.json();
+            mostrarTarjeta(data);
+            }
+            
+            //  Llenar y mostrar la tarjeta
+            function mostrarTarjeta(data) {
+                // setAttribute para la imagen, nunca innerHTML con datos externos.
+                document.getElementById('avatar').setAttribute('src', data.avatar_url);
+                
+                // textContent escapa caracteres especiales automáticamente.
+                // ?? devuelve el lado derecho si el valor es null o undefined.
+                document.getElementById('nombre').textContent = data.name ?? 'Sin nombre';
+                document.getElementById('usuario').textContent = '@' + data.login;
+                document.getElementById('bio').textContent = data.bio ?? 'Sin biografía';
+                document.getElementById('repos').textContent = data.public_repos;
+                document.getElementById('seguidores').textContent = data.followers;
+                document.getElementById('siguiendo').textContent = data.following;
+                document.getElementById('enlace').setAttribute('href', data.html_url);
+                tarjeta.classList.add('visible');
+            }
+            
+            //  Auxiliares
+            function mostrarError(msg) {
+                errorDiv.textContent = msg; errorDiv.classList.add('visible');
+            } 
+            
+            function ocultarError() {
+                errorDiv.classList.remove('visible');
+            }
+            
+            function ocultarTarjeta() {
+                tarjeta.classList.remove('visible');
+            }
+            
+            function mostrarCargando(v) {
+                cargandoDiv.classList.toggle('visible', v);
+            }
+            
+            //  Eventos
+            btn.addEventListener('click', buscarUsuario);
+            input.addEventListener('keydown', e => { 
+                if (e.key === 'Enter') buscarUsuario();
+            }
+        ); 
+        </script>
+    </body>
+</html>
