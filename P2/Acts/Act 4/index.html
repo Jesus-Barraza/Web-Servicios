@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width initial-scale=1.0">
+        <title>Lector de noticias</title>
+        <style> 
+            * { 
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            } 
+            
+            body { 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                background: #f6f8fa;
+                color: #1a1a2e;
+                padding: 24px 16px;
+                max-width: 960px;
+                margin: 0 auto;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+                margin-bottom: 6px;
+            }
+            
+            .subtitulo {
+                color: #57606a;
+                font-size: 0.9rem;
+                margin-bottom: 20px;
+            } 
+            
+            /* Controles de filtro y busqueda */
+            .controles {
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                margin-bottom: 24px;
+                align-items: center;
+            } 
+            
+            select, input[type='text'] {
+                padding: 8px 12px;
+                border-radius: 6px;
+                border: 1px solid #d0d7de;
+                font-size: 0.95rem;
+                background: white;
+                outline: none;
+            }
+            
+            select:focus, input:focus {
+                border-color: #6e40c9;
+            }
+            
+            input[type='text'] {
+                flex: 1;
+                min-width: 200px;
+            }
+            
+            button {
+                padding: 8px 16px;
+                border-radius: 6px;
+                border: none;
+                background: #6e40c9;
+                color: white;
+                font-size: 0.9rem;
+                cursor: pointer;
+                white-space: nowrap;
+            }
+            
+            button:hover {
+                background: #5a32a3;
+            }
+            
+            /* Grid de tarjetas */
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 16px;
+            }
+            
+            .card {
+                background: white;
+                border: 1px solid #d0d7de;
+                border-radius: 10px;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                transition: box-shadow 0.2s;
+            }
+            
+            .card:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            }
+            
+            .card img {
+                width: 100%;
+                height: 160px;
+                object-fit: cover;
+                background: #eaeef2;
+            }
+            
+            .card-body {
+                padding: 14px;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .card-categoria {
+                font-size: 0.75rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                color: #6e40c9;
+                letter-spacing: 0.5px;
+            }
+            
+            .card-titulo {
+                font-size: 0.95rem;
+                font-weight: 700;
+                line-height: 1.4;
+                color: #1a1a2e;
+            }
+            
+            .card-desc {
+                font-size: 0.85rem;
+                color: #57606a;
+                line-height: 1.5;
+                flex: 1;
+            }
+            
+            .card-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-top: 8px;
+                font-size: 0.78rem;
+                color: #8b949e;
+            }
+            
+            .card-footer a {
+                color: #6e40c9;
+                text-decoration: none;
+                font-weight: 600;
+            }
+            
+            .card-footer a:hover {
+                text-decoration: underline;
+            }
+            
+            /* Estados de la UI: ocultos por defecto, JS agrega .visible */
+            .estado {
+                text-align: center;
+                padding: 40px;
+                color: #57606a;
+                font-size: 0.95rem;
+                display: none;
+            }
+            
+            .estado.visible {
+                display: block;
+            }
+            
+            .error-msg {
+                background: #fff0ee;
+                border: 1px solid #d1242f;
+                border-radius: 8px;
+                padding: 12px 16px;
+                color: #d1242f;
+                margin-bottom: 16px;
+                display: none;
+            }
+            
+            .error-msg.visible {
+                display: block;
+            }
+            
+            .contador {
+                font-size: 0.85rem;
+                color: #57606a;
+                margin-bottom: 14px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Lector de Noticias</h1>
+        <p class='subtitulo'>Fuente: Currents API — noticias en tiempo real</p>
+        
+        <!-- Mensaje de error: invisible hasta que JS lo active -->
+        <div class='error-msg' id='errorMsg'></div>
+
+        <div class='controles'>
+            <select id='selectCategoria' aria-label='Categoría'>
+                <option value=''>Todas las categorias</option>
+                <option value='general'>General</option>
+                <option value='technology'>Tecnologia</option>
+                <option value='sport'>Deportes</option>
+                <option value='health'>Salud</option>
+                <option value='science'>Ciencia</option>
+                <option value='politics'>Politica</option>
+                <option value='entertainment'>Entretenimiento</option>
+            </select>
+            
+            <input type='text' id='inputBusqueda' placeholder='Buscar noticias...'>
+            <button id='btnBuscar'>Buscar</button>
+        </div>
+
+        <!-- Numero de resultados encontrados -->
+        <p class='contador' id='contador'></p>
+        
+        <!-- Mensaje de carga: visible mientras espera la API -->
+        <div class='estado' id='estadoCarga'>Cargando noticias...</div>
+         
+        <!-- Grid vacio: JS inserta las tarjetas aqui -->
+        <div class='grid' id='gridNoticias'></div>
+
+        <script>
+            // Configuracion
+            // Reemplaza TU_API_KEY con la clave de tu dashboard de Currents.
+            const API_KEY = 'BDMm1-rH4UiR3-il800vQ4j5yHuJG1R0gy5bmH3t7mLMOTMW';
+            const BASE_URL = 'https://api.currentsapi.services/v1';
+            
+            //  Referencias al DOM
+            // getElementById busca el elemento por su atributo id.
+            // Lo guardamos en constantes para no repetir la busqueda.
+            const selectCat = document.getElementById('selectCategoria');
+            const inputBusq = document.getElementById('inputBusqueda');
+            const grid = document.getElementById('gridNoticias');
+            const errorMsg = document.getElementById('errorMsg');
+            const estadoCarga = document.getElementById('estadoCarga');
+            const contador = document.getElementById('contador');
+            
+            //  Estado
+            // Timer para el debounce. Lo declaramos aqui para que
+            // todas las funciones puedan acceder a el.
+            let debounceTimer = null;
+
+            //  Construccion de la URL
+            // Devuelve la URL correcta segun los filtros activos.
+            function construirURL() {
+                const categoria = selectCat.value;
+                const keywords = inputBusq.value.trim();
+                let url; if (keywords) {
+                    // Si hay texto: usar /search con el parametro keywords
+                    url = `${BASE_URL}/search?keywords=${encodeURIComponent(keywords)}&language;=es`;
+                    if (categoria) url += `&category;=${categoria}`;
+                } else {
+                    // Si no hay texto: usar /latest-news
+                    url = `${BASE_URL}/latest-news?language=es`;
+                    if (categoria) url += `&category;=${categoria}`;
+                } return url;
+            }
+
+            // Peticion a la API
+            async function buscarNoticias() {
+                // Limpiar estado anterior
+                mostrarCarga(true);
+                ocultarError();
+                grid.innerHTML = ''; contador.textContent = '';
+                const url = construirURL();
+                
+                // fetch con el header de autenticacion.
+                // Authorization: solo la clave, sin prefijo 'Bearer'.
+                const resp = await fetch(url, {
+                    headers: { 'Authorization': API_KEY }
+                });
+                mostrarCarga(false);
+                
+                // fetch NO rechaza en 4xx/5xx: verificar resp.ok manualmente.
+                if (!resp.ok) {
+                    if (resp.status === 401) {
+                        mostrarError('API key invalida. Verifica tu clave en el dashboard.');
+                    } else if (resp.status === 429) {
+                        mostrarError('Limite diario alcanzado (1,000/dia). Intenta manana.');
+                    } else { 
+                        mostrarError(`Error ${resp.status}. Intenta de nuevo.`);
+                    }
+                    return;
+                }
+                
+                // .json() tambien es una Promise: necesita await.
+                const data = await resp.json();
+                const noticias = data.news ?? [];
+                
+                // ?? devuelve [] si news es null
+                if (noticias.length === 0) {
+                    mostrarError('No se encontraron noticias. Prueba otros terminos.');
+                    return;
+                }
+                
+                contador.textContent = `${noticias.length} articulos encontrados`;
+                renderNoticias(noticias);
+            }
+
+            // Render de tarjetas
+            function renderNoticias(noticias) {
+                grid.innerHTML = '';
+                
+                // Limpiar tarjetas anteriores
+                noticias.forEach(n => {
+                    // Formatear fecha a texto legible en espanol
+                    const fecha = new Date(n.published).toLocaleDateString('es-MX', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric'
+                    });
+                    
+                    // Caso 1: image puede ser null o el string literal 'None'
+                    const imgSrc = (n.image && n.image !== 'None') ? n.image : 'https://placehold.co/400x160/eaeef2/57606a?text=Sin+imagen';
+                    
+                    // Caso 2: category es un array; tomamos el primero
+                    const cat = Array.isArray(n.category) ? n.category[0] : '';
+                    
+                    // Caso 3: description puede ser null
+                    const desc = n.description ?? 'Sin descripcion disponible.';
+                    
+                    const card = document.createElement('div'); card.className = 'card';
+                    card.innerHTML = `
+                        <img src='${imgSrc}' alt='imagen' onerror='this.src="https://placehold.co/400x160/eaeef2/57606a?text=Sin+imagen"'>
+                        
+                        <div class='card-body'>
+                            <div class='card-categoria'>${cat}</div>
+                            <div class='card-titulo'>${n.title}</div>
+                            <div class='card-desc'>${desc}</div>
+                            <div class='card-footer'><span>${fecha}</span>
+                                <a href='${n.url}' target='_blank'>Leer mas ></a>
+                            </div>
+                        </div>`;
+                        
+                    grid.appendChild(card);
+                });
+            }
+
+            // Auxiliares de UI
+            function mostrarCarga(v) {
+                // toggle agrega 'visible' si v=true, la quita si v=false
+                estadoCarga.classList.toggle('visible', v);
+            }
+            
+            function mostrarError(msg) {
+                errorMsg.textContent = msg;
+                errorMsg.classList.add('visible');
+            }
+            
+            function ocultarError() {
+                errorMsg.classList.remove('visible');
+            }
+
+            // Debounce
+            // Espera 500ms de inactividad antes de lanzar la busqueda.
+            // Cada vez que el usuario escribe, cancela el timer anterior
+            // y empieza uno nuevo.
+            function buscarConDebounce() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(buscarNoticias, 500);
+            }
+
+            // Eventos 
+            // Boton: lanza busqueda inmediata
+            document.getElementById('btnBuscar').addEventListener('click', buscarNoticias);
+            
+            // Input: usa debounce para no saturar la API mientras el usuario escribe
+            inputBusq.addEventListener('input', buscarConDebounce);
+            
+            // Select: busqueda inmediata al cambiar la categoria
+            selectCat.addEventListener('change', buscarNoticias);
+            
+            // Inicio
+            // Cargar noticias generales al abrir la pagina
+            buscarNoticias(); 
+        </script>
+    </body>
+</html>
