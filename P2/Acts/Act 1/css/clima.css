@@ -1,0 +1,26 @@
+body {
+    margin: 20px;
+    background: linear-gradient(0deg, rgb(224, 227, 253) 0%, rgb(221, 246, 254) 100%);
+}
+
+.todo {
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.75);
+    border-radius: 15px;
+}
+
+h1 {
+    margin-top: 0px;
+    font-size: 36px;
+    font-weight: 700;
+}
+
+.pre {
+    font-weight: 600;
+}
+
+#resultado {
+    background-color: rgb(255, 255, 255);
+    padding: 12px;
+    border-radius: 10px;
+}

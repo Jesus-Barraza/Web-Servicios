@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Búsqueda de Países</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    input, button { padding: 8px; margin: 5px; }
+    #resultado { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Buscar País</h1>
+  <input type="text" id="pais" placeholder="Escribe el nombre del país">
+  <button id="buscar">Buscar</button>
+
+  <div id="resultado"></div>
+
+  <script>
+    document.getElementById("buscar").addEventListener("click", async () => {
+      const nombrePais = document.getElementById("pais").value.trim();
+      const resultadoDiv = document.getElementById("resultado");
+      resultadoDiv.innerHTML = "";
+
+      if (!nombrePais) {
+        resultadoDiv.innerHTML = "<p>Por favor, escribe un país.</p>";
+        return;
+      }
+
+      try {
+        const res = await fetch(`https://restcountries.com/v3.1/name/${nombrePais}`);
+        if (!res.ok) throw new Error("No se encontró el país");
+        const data = await res.json();
+        const pais = data[0];
+
+        resultadoDiv.innerHTML = `
+          <h2>${pais.name.common}</h2>
+          <p><strong>Capital:</strong> ${pais.capital ? pais.capital[0] : "No disponible"}</p>
+          <p><strong>Región:</strong> ${pais.region}</p>
+          <p><strong>Población:</strong> ${pais.population.toLocaleString()}</p>
+          <p><strong>Bandera:</strong></p>
+          <img src="${pais.flags.svg}" alt="Bandera de ${pais.name.common}" width="150">
+        `;
+      } catch (error) {
+        resultadoDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+      }
+    });
+  </script>
+</body>
+</html>

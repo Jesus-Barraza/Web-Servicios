@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clima actual - Open-Meteo</title>
+</head>
+<body>
+  <h1>Clima actual</h1>
+
+  <label>Latitud: <input id="lat" type="number" value="24.02" placeholder="Ingresa numeros"></label>
+  <label>Longitud: <input id="lon" type="number" value="-104.66" placeholder="-104.66"></label>
+  <button id="btn">Consultar clima</button>
+
+  <div id="resultado"></div>
+
+  <script>
+    const boton = document.getElementById("btn");
+    const salida = document.getElementById("resultado");
+
+    boton.addEventListener("click", consultarClima);
+
+    async function consultarClima() {
+      const lat = document.getElementById("lat").value;
+      const lon = document.getElementById("lon").value;
+
+      const url = `https://api.open-meteo.com/v1/forecast`
+                + `?latitude=${lat}&longitude=${lon}`
+                + `&current=temperature_2m,wind_speed_10m`;
+
+      salida.textContent = "Consultando...";
+
+      try {
+        const respuesta = await fetch(url);
+
+        if (!respuesta.ok) {
+          throw new Error(`HTTP ${respuesta.status}`);
+        }
+
+        const datos = await respuesta.json();
+
+        console.log(datos)
+
+        const temp     = datos.current.temperature_2m;
+        const viento   = datos.current.wind_speed_10m;
+        const uTemp    = datos.current_units.temperature_2m;
+        const uViento  = datos.current_units.wind_speed_10m;
+
+        salida.innerHTML = `
+          <p>Temperatura: ${temp} ${uTemp}</p>
+          <p>Viento: ${viento} ${uViento}</p>
+        `;
+      } catch (error) {
+        salida.textContent = `Error: ${error.message}`;
+      }
+    }
+  </script>
+</body>
+</html>

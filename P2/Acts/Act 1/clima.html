@@ -1,0 +1,41 @@
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Buscador de clima - Open Meteo</title>
+        <link rel="stylesheet" href="css/clima.css">
+    </head>
+    <body>
+        <div class="todo">
+            <h1>Clima actual</h1>
+
+            <div id="consulta">
+                <label class="pre" for="lat">Latitud:</label>
+                <input id="lat" type="number" name="Latitud" title="Inserta la latitud" placeholder="Inserta la latitud" value="24.02">
+                <br><br>
+
+                <label class="pre" for="lon">Longitud:</label>
+                <input id="lon" type="number" name="Longitud" title="Inserta la longitud" placeholder="Inserta la longitud" value="-104.66">
+                <br><br>
+
+                <button id="enter" type="button">Consultar</button>
+            </div>
+
+            <div id="resultado"></div>
+        </div>
+
+        <script src="js/clima.js"></script>
+        <script>
+            const inputLat = document.getElementById("lat");
+            const inputLon = document.getElementById("lon");
+            const resultado = document.getElementById("resultado");
+            const boton = document.getElementById("enter");
+
+            boton.addEventListener("click", () => {
+                const latitud = inputLat.value;
+                const longitud = inputLon.value;
+                busqueda(latitud, longitud, resultado);
+            });
+        </script>
+    </body>
+</html>
