@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <title>Login</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" type="image/svg" href="img/logo.svg">
+        <link rel="stylesheet" href="styles.css">
+    </head>
+    <body>
+        <div class="container">
+            <h1 id="form-title">Iniciar sesión</h1>
+
+            <div class="boton" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button type="button" id="btn-login">Iniciar sesión</button>
+                <button type="button" id="btn-register">Registrarse</button>
+            </div>
+
+            <div class="block" id="nombre-block" hidden>
+                <h3>Nombre</h3>
+                <input type="text" id="nombre" placeholder="Inserta tu nombre">
+            </div>
+
+            <div class="block">
+                <h3>Correo electrónico</h3>
+                <input type="text" id="correo" placeholder="Inserta el correo electrónico">
+            </div>
+            <div class="block">
+                <h3>Contraseña</h3>
+                <input type="password" id="contrasena" placeholder="Inserta la contraseña">
+            </div>
+            <div class="boton">
+                <button id="iniciar-sesion">Iniciar sesión</button>
+            </div>
+
+            <div id="result"></div>
+        </div>
+        <script src="code.js"></script>
+        <script>
+            const inputNombre = document.getElementById("nombre");
+            const inputCorreo = document.getElementById("correo");
+            const inputContra = document.getElementById("contrasena");
+            const resultado = document.getElementById("result");
+            const boton = document.getElementById("iniciar-sesion");
+            const btnLogin = document.getElementById("btn-login");
+            const btnRegister = document.getElementById("btn-register");
+            const nombreBlock = document.getElementById("nombre-block");
+            const formTitle = document.getElementById("form-title");
+
+            let modo = "login";
+
+            const cambiarModo = (nuevoModo) => {
+                modo = nuevoModo;
+                nombreBlock.hidden = nuevoModo !== "register";
+                formTitle.textContent = nuevoModo === "register" ? "Crear cuenta" : "Iniciar sesión";
+                boton.textContent = nuevoModo === "register" ? "Registrarse" : "Iniciar sesión";
+                btnLogin.disabled = nuevoModo === "login";
+                btnRegister.disabled = nuevoModo === "register";
+            };
+
+            btnLogin.addEventListener("click", () => cambiarModo("login"));
+            btnRegister.addEventListener("click", () => cambiarModo("register"));
+
+            boton.addEventListener("click", () => {
+                const nombre = inputNombre.value.trim();
+                const correo = inputCorreo.value.trim();
+                const contra = inputContra.value;
+
+                if (modo === "register") {
+                    register(nombre, correo, contra, resultado);
+                } else {
+                    login(correo, contra, resultado);
+                }
+            });
+
+            cambiarModo("login");
+        </script>
+    </body>
+</html>

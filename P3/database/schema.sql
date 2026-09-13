@@ -1,0 +1,24 @@
+CREATE DATABASE IF NOT EXISTS awos_u3
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE awos_u3;
+
+CREATE TABLE IF NOT EXISTS usuarios (
+  id        INT AUTO_INCREMENT PRIMARY KEY,
+  nombre    VARCHAR(100)  NOT NULL,
+  email     VARCHAR(150)  NOT NULL UNIQUE,
+  password  VARCHAR(255)  NOT NULL,
+  creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tareas (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  titulo      VARCHAR(200) NOT NULL,
+  completada  BOOLEAN      NOT NULL DEFAULT FALSE,
+  usuario_id  INT          NOT NULL,
+  creado_en   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_tareas_usuario
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    ON DELETE CASCADE
+);

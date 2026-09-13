@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tareas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .container {
+            max-width: 700px;
+            margin: auto;
+        }
+        .mensaje {
+            margin-top: 20px;
+            padding: 12px;
+            background: #f0f0f0;
+            border-radius: 8px;
+        }
+        .tarea {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .completada {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .acciones button {
+            margin-left: 5px;
+            padding: 4px 8px;
+        }
+        .selector-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            align-items: center;
+        }
+        .selector-row input,
+        .selector-row select {
+            padding: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tareas</h1>
+        <div id="mensaje" class="mensaje">Cargando...</div>
+
+        <form id="form-tarea" style="margin-top: 20px;">
+            <input type="text" id="titulo-tarea" placeholder="Nueva tarea" style="padding: 8px; width: 70%;" required>
+            <button type="submit" style="padding: 8px 12px;">Agregar</button>
+        </form>
+
+        <div class="selector-row">
+            <select id="selector-tareas" style="width: 70%;"></select>
+            <button type="button" id="btn-cargar-seleccion">Cargar</button>
+        </div>
+
+        <form id="form-editar" style="margin-top: 20px;">
+            <input type="text" id="titulo-editar" placeholder="Modificar tarea" style="padding: 8px; width: 70%;" required>
+            <button type="submit" style="padding: 8px 12px;">Modificar</button>
+        </form>
+
+        <ul id="lista-tareas" style="margin-top: 20px;"></ul>
+    </div>
+
+    <script>
+        const token = localStorage.getItem("token");
+        const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+        const mensaje = document.getElementById("mensaje");
+        const listaTareas = document.getElementById("lista-tareas");
+        const formTarea = document.getElementById("form-tarea");
+        const inputTitulo = document.getElementById("titulo-tarea");
+        const selectorTareas = document.getElementById("selector-tareas");
+        const btnCargarSeleccion = document.getElementById("btn-cargar-seleccion");
+        const formEditar = document.getElementById("form-editar");
+        const inputTituloEditar = document.getElementById("titulo-editar");
+        let tareaSeleccionadaId = null;
+
+        async function cargarTareas() {
+            if (!token) {
+                mensaje.textContent = "No hay sesión activa. Inicia sesión primero.";
+                return;
+            }
+
+            try {
+                const response = await fetch("http://localhost:3002/tareas", {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "No se pudieron cargar las tareas");
+                }
+
+                mensaje.innerHTML = `
+                    <p>Sesión activa ✅</p>
+                    <p>Usuario: ${usuario ? usuario.nombre : "Desconocido"}</p>
+                `;
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    selectorTareas.innerHTML = "<option value=''>No hay tareas</option>";
+                    listaTareas.innerHTML = "<li>No hay tareas registradas.</li>";
+                    return;
+                }
+
+                selectorTareas.innerHTML = data.map(tarea => `
+                    <option value="${tarea.id}" ${tarea.id === tareaSeleccionadaId ? "selected" : ""}>${tarea.titulo}</option>
+                `).join("");
+
+                if (!tareaSeleccionadaId && data.length > 0) {
+                    tareaSeleccionadaId = data[0].id;
+                }
+
+                listaTareas.innerHTML = data.map(tarea => `
+                    <li class="tarea ${tarea.completada ? "completada" : ""}" data-id="${tarea.id}">
+                        <span>${tarea.titulo}</span>
+                        <span class="acciones">
+                            <button data-id="${tarea.id}" data-action="toggle">${tarea.completada ? "Deshacer" : "Completar"}</button>
+                            <button data-id="${tarea.id}" data-action="delete">Eliminar</button>
+                        </span>
+                    </li>
+                `).join("");
+            } catch (err) {
+                mensaje.textContent = `Error: ${err.message}`;
+            }
+        }
+
+        formTarea.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            if (!token) {
+                mensaje.textContent = "No hay sesión activa. Inicia sesión primero.";
+                return;
+            }
+
+            try {
+                const response = await fetch("http://localhost:3002/tareas", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ titulo: inputTitulo.value })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "No se pudo crear la tarea");
+                }
+
+                inputTitulo.value = "";
+                await cargarTareas();
+            } catch (err) {
+                mensaje.textContent = `Error: ${err.message}`;
+            }
+        });
+
+        btnCargarSeleccion.addEventListener("click", () => {
+            tareaSeleccionadaId = Number(selectorTareas.value);
+            const tareaSeleccionada = Array.from(listaTareas.querySelectorAll(".tarea")).find(item => item.dataset.id == tareaSeleccionadaId);
+            if (tareaSeleccionada) {
+                inputTituloEditar.value = tareaSeleccionada.querySelector("span")?.textContent?.trim() || "";
+                mensaje.textContent = "Tarea cargada para editar.";
+            }
+        });
+
+        formEditar.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            if (!token || !tareaSeleccionadaId) {
+                mensaje.textContent = "Selecciona una tarea antes de modificar.";
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:3002/tareas/${tareaSeleccionadaId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ titulo: inputTituloEditar.value })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "No se pudo modificar la tarea");
+                }
+
+                inputTituloEditar.value = "";
+                await cargarTareas();
+                mensaje.textContent = "Tarea modificada correctamente.";
+            } catch (err) {
+                mensaje.textContent = `Error: ${err.message}`;
+            }
+        });
+
+        listaTareas.addEventListener("click", async (e) => {
+            const boton = e.target.closest("button");
+            if (!boton) return;
+
+            const id = boton.dataset.id;
+            const action = boton.dataset.action;
+
+            try {
+                if (action === "toggle") {
+                    const tareaActual = Array.from(listaTareas.querySelectorAll(".tarea")).find(item => item.querySelector("button")?.dataset.id === id);
+                    const completada = tareaActual?.classList.contains("completada") ? false : true;
+                    const tituloActual = tareaActual?.querySelector("span")?.textContent?.trim();
+
+                    const response = await fetch(`http://localhost:3002/tareas/${id}`, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ titulo: tituloActual, completada })
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || "No se pudo actualizar la tarea");
+                } else if (action === "delete") {
+                    const response = await fetch(`http://localhost:3002/tareas/${id}`, {
+                        method: "DELETE",
+                        headers: {
+                            "Authorization": `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const data = await response.json().catch(() => ({}));
+                        throw new Error(data.error || "No se pudo eliminar la tarea");
+                    }
+                }
+
+                await cargarTareas();
+            } catch (err) {
+                mensaje.textContent = `Error: ${err.message}`;
+            }
+        });
+
+        cargarTareas();
+    </script>
+</body>
+</html>
